@@ -26,10 +26,9 @@ model User {
   email                String    @unique
   phone                String    @unique
   password             String
-  roleId               Int       @map("role_id")
+  roleId               Int?       @map("role_id")
   branchId             Int?      @map("branch_id")
   profilePicture       String?   @map("profile_picture")
-  profileCloudinaryId  String?   @map("profile_cloudinary_id")
   status               UserStatus @default(active)
   gender               Gender?
   lastLoginAt          DateTime? @map("last_login_at")
@@ -38,7 +37,7 @@ model User {
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  role                 Role      @relation(fields: [roleId], references: [id])
+  role                 Role?      @relation(fields: [roleId], references: [id])
   branch               Branch?   @relation(fields: [branchId], references: [id])
   managedBranch        Branch?   @relation("BranchManager")
   purchases            Purchase[]
