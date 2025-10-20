@@ -1,15 +1,450 @@
-datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
-}
-
+// schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   // admin, cashier, store_manager
+  description String?
+  permissions Json?
+  users       User[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("roles")
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  createdAt DateTime @default(now())
+  id                   Int       @id @default(autoincrement())
+  name                 String
+  email                String    @unique
+  phone                String    @unique
+  password             String
+  roleId               Int       @map("role_id")
+  branchId             Int?      @map("branch_id")
+  profilePicture       String?   @map("profile_picture")
+  profileCloudinaryId  String?   @map("profile_cloudinary_id")
+  status               UserStatus @default(active)
+  gender               Gender?
+  lastLoginAt          DateTime? @map("last_login_at")
+  rememberToken        String?   @map("remember_token")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  role                 Role      @relation(fields: [roleId], references: [id])
+  branch               Branch?   @relation(fields: [branchId], references: [id])
+  managedBranch        Branch?   @relation("BranchManager")
+  purchases            Purchase[]
+  sales                Sale[]
+  inventoryLogs        InventoryLog[]
+  expenses             Expense[]
+  saleReturns          SaleReturn[]
+  
+  @@map("users")
+}
+
+model Branch {
+  id          Int       @id @default(autoincrement())
+  name        String
+  code        String    @unique
+  address     String?
+  phone       String?
+  email       String?
+  managerId   Int?      @map("manager_id") @unique
+  status      Status    @default(active)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  manager     User?     @relation("BranchManager", fields: [managerId], references: [id])
+  users       User[]
+  stocks      Stock[]
+  purchases   Purchase[]
+  sales       Sale[]
+  inventoryLogs InventoryLog[]
+  expenses    Expense[]
+
+  @@map("branches")
+}
+
+model Brand {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?
+  logo        String?
+  status      Status    @default(active)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  products    Product[]
+
+  @@map("brands")
+}
+
+model ProductCategory {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?
+  icon        String?
+  sortOrder   Int       @default(0) @map("sort_order")
+  status      Status    @default(active)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  products    Product[]
+
+  @@map("product_categories")
+}
+
+model Supplier {
+  id             Int            @id @default(autoincrement())
+  supplierCode   String         @unique @map("supplier_code")
+  name           String
+  contactPerson  String?        @map("contact_person")
+  phone          String?
+  email          String?
+  address        String?
+  gstNumber      String?        @map("gst_number")
+  paymentTerms   String?        @map("payment_terms")
+  status         Status         @default(active)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  products       Product[]
+  purchases      Purchase[]
+
+  @@map("suppliers")
+}
+
+model Product {
+  id                  Int              @id @default(autoincrement())
+  categoryId          Int              @map("category_id")
+  supplierId          Int              @map("supplier_id")
+  brandId             Int?             @map("brand_id")
+  name                String
+  slug                String           @unique
+  sku                 String           @unique
+  unit                UnitType
+  costPrice           Decimal          @map("cost_price") @db.Decimal(10,2)
+  salePrice           Decimal          @map("sale_price") @db.Decimal(10,2)
+  barcode             String?
+  description         String?
+  imageUrls           Json?            @map("image_urls")
+  imageCloudinaryIds  Json?            @map("image_cloudinary_ids")
+  stockAlertQuantity  Int              @default(0) @map("stock_alert_quantity")
+  reorderQuantity     Int              @default(0) @map("reorder_quantity")
+  status              Status           @default(active)
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  category            ProductCategory  @relation(fields: [categoryId], references: [id])
+  supplier            Supplier         @relation(fields: [supplierId], references: [id])
+  brand               Brand?           @relation(fields: [brandId], references: [id])
+  stocks              Stock[]
+  purchaseItems       PurchaseItem[]
+  saleItems           SaleItem[]
+  inventoryLogs       InventoryLog[]
+  saleReturns         SaleReturn[]
+
+  @@map("products")
+}
+
+model Stock {
+  id          Int      @id @default(autoincrement())
+  productId   Int      @map("product_id")
+  branchId    Int      @map("branch_id")
+  quantity    Int      @default(0)
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  product     Product  @relation(fields: [productId], references: [id])
+  branch      Branch   @relation(fields: [branchId], references: [id])
+
+  @@unique([productId, branchId])
+  @@map("stocks")
+}
+
+model Purchase {
+  id             Int             @id @default(autoincrement())
+  supplierId     Int             @map("supplier_id")
+  branchId       Int             @map("branch_id")
+  invoiceNo      String          @unique @map("invoice_no")
+  purchaseDate   DateTime        @map("purchase_date")
+  totalAmount    Decimal         @map("total_amount") @db.Decimal(10,2)
+  discount       Decimal         @default(0) @db.Decimal(10,2)
+  tax            Decimal         @default(0) @db.Decimal(10,2)
+  grandTotal     Decimal         @map("grand_total") @db.Decimal(10,2)
+  paymentStatus  PaymentStatus   @default(unpaid) @map("payment_status")
+  paymentMethod  PaymentMethod?  @map("payment_method")
+  createdById    Int             @map("created_by")
+  status         PurchaseStatus  @default(pending)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  supplier       Supplier        @relation(fields: [supplierId], references: [id])
+  branch         Branch          @relation(fields: [branchId], references: [id])
+  createdBy      User            @relation(fields: [createdById], references: [id])
+  purchaseItems  PurchaseItem[]
+  inventoryLogs  InventoryLog[]
+
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id          Int      @id @default(autoincrement())
+  purchaseId  Int      @map("purchase_id")
+  productId   Int      @map("product_id")
+  quantity    Int
+  unitCost    Decimal  @map("unit_cost") @db.Decimal(10,2)
+  subtotal    Decimal  @db.Decimal(10,2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  purchase    Purchase @relation(fields: [purchaseId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@map("purchase_items")
+}
+
+model Sale {
+  id             Int            @id @default(autoincrement())
+  invoiceNo      String         @unique @map("invoice_no")
+  branchId       Int            @map("branch_id")
+  customerId     Int?           @map("customer_id")
+  totalAmount    Decimal        @map("total_amount") @db.Decimal(10,2)
+  discount       Decimal        @default(0) @db.Decimal(10,2)
+  tax            Decimal        @default(0) @db.Decimal(10,2)
+  grandTotal     Decimal        @map("grand_total") @db.Decimal(10,2)
+  paidAmount     Decimal        @default(0) @map("paid_amount") @db.Decimal(10,2)
+  dueAmount      Decimal        @default(0) @map("due_amount") @db.Decimal(10,2)
+  paymentMethod  PaymentMethod  @map("payment_method")
+  createdById    Int            @map("created_by")
+  status         SaleStatus     @default(completed)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  branch         Branch         @relation(fields: [branchId], references: [id])
+  customer       Customer?      @relation(fields: [customerId], references: [id])
+  createdBy      User           @relation(fields: [createdById], references: [id])
+  saleItems      SaleItem[]
+  inventoryLogs  InventoryLog[]
+  saleReturns    SaleReturn[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id          Int      @id @default(autoincrement())
+  saleId      Int      @map("sale_id")
+  productId   Int      @map("product_id")
+  quantity    Int
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(10,2)
+  subtotal    Decimal  @db.Decimal(10,2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  sale        Sale     @relation(fields: [saleId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@map("sale_items")
+}
+
+model Customer {
+  id                   Int              @id @default(autoincrement())
+  customerCode         String           @unique @map("customer_code")
+  name                 String
+  email                String           @unique
+  phone                String           @unique
+  password             String
+  address              Json?
+  profilePicture       String?          @map("profile_picture")
+  profileCloudinaryId  String?          @map("profile_cloudinary_id")
+  customerType         CustomerType     @default(individual) @map("customer_type")
+  status               UserStatus       @default(active)
+  emailVerifiedAt      DateTime?        @map("email_verified_at")
+  rememberToken        String?          @map("remember_token")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  sales                Sale[]
+  loyalty              CustomerLoyalty?
+  saleReturns          SaleReturn[]
+
+  @@map("customers")
+}
+
+model InventoryLog {
+  id              Int               @id @default(autoincrement())
+  productId       Int               @map("product_id")
+  branchId        Int               @map("branch_id")
+  changeType      InventoryChangeType @map("change_type")
+  quantityChange  Int               @map("quantity_change")
+  previousStock   Int               @map("previous_stock")
+  newStock        Int               @map("new_stock")
+  referenceType   ReferenceType     @map("reference_type")
+  referenceId     Int?              @map("reference_id")
+  createdById     Int               @map("created_by")
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  // Relations
+  product         Product           @relation(fields: [productId], references: [id])
+  branch          Branch            @relation(fields: [branchId], references: [id])
+  createdBy       User              @relation(fields: [createdById], references: [id])
+
+  @@map("inventory_logs")
+  Purchase Purchase[]
+  Sale Sale[]
+}
+
+model Expense {
+  id             Int            @id @default(autoincrement())
+  branchId       Int            @map("branch_id")
+  category       String
+  amount         Decimal        @db.Decimal(10,2)
+  description    String?
+  expenseDate    DateTime       @map("expense_date")
+  createdById    Int            @map("created_by")
+  paymentMethod  PaymentMethod? @map("payment_method")
+  referenceNo    String?        @map("reference_no")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  branch         Branch         @relation(fields: [branchId], references: [id])
+  createdBy      User           @relation(fields: [createdById], references: [id])
+
+  @@map("expenses")
+}
+
+model SaleReturn {
+  id            Int            @id @default(autoincrement())
+  saleId        Int            @map("sale_id")
+  productId     Int            @map("product_id")
+  quantity      Int
+  reason        String
+  refundAmount  Decimal        @map("refund_amount") @db.Decimal(10,2)
+  status        ReturnStatus   @default(pending)
+  processedById Int?           @map("processed_by")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  sale          Sale           @relation(fields: [saleId], references: [id])
+  product       Product        @relation(fields: [productId], references: [id])
+  processedBy   User?          @relation(fields: [processedById], references: [id])
+  // customer      Customer?      @relation(fields: [saleId], references: [id], onUpdate: Cascade)
+
+  @@map("sale_returns")
+  Customer Customer[]
+}
+
+model CustomerLoyalty {
+  id            Int      @id @default(autoincrement())
+  customerId    Int      @unique @map("customer_id")
+  pointsBalance Int      @default(0) @map("points_balance")
+  totalEarned   Int      @default(0) @map("total_earned")
+  totalRedeemed Int      @default(0) @map("total_redeemed")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  customer      Customer @relation(fields: [customerId], references: [id])
+
+  @@map("customer_loyalty")
+}
+
+
+
+
+
+// ENUMS
+enum Status {
+  active
+  inactive
+}
+
+enum UserStatus {
+  active
+  inactive
+}
+
+enum Gender {
+  male
+  female
+  other
+}
+
+enum UnitType {
+  piece
+  box
+  pack
+}
+
+enum PaymentStatus {
+  paid
+  partial
+  unpaid
+}
+
+enum PaymentMethod {
+  cash
+  card
+  bank_transfer
+  bkash
+  nagad
+}
+
+enum PurchaseStatus {
+  pending
+  received
+  cancelled
+}
+
+enum SaleStatus {
+  completed
+  pending
+  cancelled
+}
+
+enum CustomerType {
+  individual
+  business
+}
+
+enum InventoryChangeType {
+  purchase
+  sale
+  adjustment
+  return
+}
+
+enum ReferenceType {
+  purchase
+  sale
+  manual
+}
+
+enum ReturnStatus {
+  pending
+  approved
+  rejected
 }
