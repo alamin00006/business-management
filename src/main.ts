@@ -20,7 +20,7 @@ async function bootstrap() {
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
   app.use('/uploads', express.static('public/uploads'));
 
-  app.setGlobalPrefix('v1');
+  app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -30,12 +30,17 @@ async function bootstrap() {
         const formattedErrors = errors.map((error) => ({
           property: error.property,
           constraints: error.constraints,
-          // children: error.children.length > 0 ? error.children : undefined,
         }));
-        return new BadRequestException({
-          message: 'Validation failed',
-          errors: formattedErrors,
-        });
+        console.log('Formatted validation errors:', formattedErrors);
+
+        return new BadRequestException(
+          {
+            statusCode: 400,
+            message: 'Validation failed',
+            errors: formattedErrors,
+          },
+          'Bad Request',
+        );
       },
     }),
   );

@@ -42,7 +42,7 @@ export class CreateUserDto {
   })
   @IsString()
   @IsNotEmpty()
-  @IsPhoneNumber()
+  // @IsPhoneNumber()
   phone: string;
 
   @ApiProperty({
@@ -59,12 +59,16 @@ export class CreateUserDto {
   })
   password: string;
 
-  @ApiProperty({
+  // @ApiProperty({
+  //   description: 'Role ID for user permissions',
+  //   example: 1,
+  // })
+  @ApiPropertyOptional({
     description: 'Role ID for user permissions',
     example: 1,
   })
   @IsNumber()
-  @IsNotEmpty()
+  @IsOptional()
   @Min(1)
   roleId: number;
 
