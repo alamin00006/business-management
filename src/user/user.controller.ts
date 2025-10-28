@@ -22,7 +22,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiQuery,
-  ApiBearerAuth,
+  // ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
 
@@ -106,10 +106,10 @@ export class UserController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('search') search?: string,
-    @Query('branchId', ParseIntPipe) branchId?: number,
-    @Query('roleId', ParseIntPipe) roleId?: number,
+    // @Query('branchId', ParseIntPipe) branchId?: number,
+    // @Query('roleId', ParseIntPipe) roleId?: number,
   ) {
-    return this.userService.findAll({ page, limit, search, branchId, roleId });
+    return this.userService.findAll({ page, limit, search });
   }
 
   /**
