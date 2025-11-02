@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-
 import { UserModule } from './user/user.module';
 import { ConfigModule } from '@nestjs/config';
 import { SocketService } from './socket.service';
@@ -16,12 +15,19 @@ import { PrismaErrorHandler } from './prisma/prisma-error.utils';
     RoleModule,
     BranchModule,
   ],
-  // controllers: [AppController],
-  providers: [SocketService],
-  exports: [PrismaErrorHandler],
+  providers: [
+    SocketService,
+    PrismaErrorHandler, // Add PrismaErrorHandler to providers
+  ],
+  exports: [
+    SocketService,
+    PrismaErrorHandler, // Now it can be exported
+  ],
 })
 export class AppModule {}
+
 // import { Module } from '@nestjs/common';
+
 // import { UserModule } from './user/user.module';
 // import { ConfigModule } from '@nestjs/config';
 // import { SocketService } from './socket.service';
@@ -38,13 +44,8 @@ export class AppModule {}
 //     RoleModule,
 //     BranchModule,
 //   ],
-//   providers: [
-//     SocketService,
-//     PrismaErrorHandler, // Add PrismaErrorHandler to providers
-//   ],
-//   exports: [
-//     SocketService,
-//     PrismaErrorHandler, // Now it can be exported
-//   ],
+//   // controllers: [AppController],
+//   providers: [SocketService],
+//   exports: [PrismaErrorHandler],
 // })
 // export class AppModule {}
