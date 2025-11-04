@@ -7,7 +7,7 @@ import {
   IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Status } from '@prisma/client'; // assuming you have a Prisma enum called Status
+import { Status } from '@prisma/client';
 
 export class CreateBranchDto {
   @IsString()
