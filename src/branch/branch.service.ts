@@ -30,9 +30,14 @@ export class BranchService {
   // Create a new branch
   async create(data: Prisma.BranchCreateInput) {
     try {
-      return await this.prisma.branch.create({
+      const branch = await this.prisma.branch.create({
         data,
       });
+
+      return {
+        message: 'Branch created successfully',
+        branch,
+      };
     } catch (error) {
       this.errorHandler.handleError(
         error,
