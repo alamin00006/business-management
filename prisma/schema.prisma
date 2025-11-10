@@ -289,6 +289,7 @@ model Customer {
   saleReturns          SaleReturn[]
 
   @@map("customers")
+  loyaltyTransactions LoyaltyTransaction[]
 }
 
 model InventoryLog {
@@ -371,7 +372,22 @@ model CustomerLoyalty {
   @@map("customer_loyalty")
 }
 
+model LoyaltyTransaction {
+  id            Int           @id @default(autoincrement())
+  customerId    Int           @map("customer_id")
+  type          String        // EARNED, REDEEMED, ADJUSTMENT_ADD, ADJUSTMENT_REMOVE, RESET
+  points        Int
+  balanceAfter  Int           @map("balance_after")
+  reason        String
+  referenceType String?       @map("reference_type") // SALE, REDEMPTION, MANUAL, ADJUSTMENT, ADMIN
+  referenceId   Int?          @map("reference_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
 
+  // Relations
+  customer      Customer      @relation(fields: [customerId], references: [id])
+
+  @@map("loyalty_transactions")
+}
 
 
 
@@ -447,3 +463,14 @@ enum ReturnStatus {
   approved
   rejected
 }
+
+
+enum TransactionType {
+  EARNED
+  REDEEMED
+  ADJUSTMENT_ADD
+  ADJUSTMENT_REMOVE
+  RESET
+  EXPIRED
+}
+
